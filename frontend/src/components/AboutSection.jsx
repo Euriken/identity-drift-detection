@@ -2,6 +2,14 @@ import React from 'react';
 
 const TEAM = [
   {
+    name: 'Devansh Goel',
+    initials: 'DG',
+    role: 'Full-Stack Development & System Design',
+    color: '#22d3ee',
+    bg: 'rgba(34,211,238,0.15)',
+    border: 'rgba(34,211,238,0.3)',
+  },
+  {
     name: 'Harshinder Singh',
     initials: 'HS',
     role: 'Model Integration & ONNX Pipeline',
@@ -16,14 +24,6 @@ const TEAM = [
     color: '#818cf8',
     bg: 'rgba(99,102,241,0.15)',
     border: 'rgba(99,102,241,0.3)',
-  },
-  {
-    name: 'Devansh Goel',
-    initials: 'DG',
-    role: 'Full-Stack Development & System Design',
-    color: '#22d3ee',
-    bg: 'rgba(34,211,238,0.15)',
-    border: 'rgba(34,211,238,0.3)',
   },
   {
     name: 'Siddhant Nirwal',
