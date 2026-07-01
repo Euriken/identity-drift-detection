@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import Modal from './Modal.jsx';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -26,6 +27,108 @@ const FALLBACK = [
   { dataset: 'CPLFW',    accuracy: 88.73, stability_index: 0.4463, avg_drift: 0.5537, reenrollment_pct: 13.2, total_pairs: 6000 },
 ];
 
+// ── Dataset info for modals ───────────────────────────────────────────────────
+const DATASET_INFO = {
+  'LFW': {
+    full: 'Labeled Faces in the Wild',
+    images: '13,233',
+    pairs: '6,000',
+    description: 'Labeled Faces in the Wild. 13,233 images, 6,000 verification pairs. Tests variation in lighting, background, and expression. Our system achieves 99.67% accuracy — confirming that environmental factors cause minimal drift. LFW is the standard benchmark for unconstrained face verification.',
+    insight: 'Our near-perfect accuracy on LFW confirms the ArcFace model handles lighting and expression variation well. The high Stability Index (0.6718) shows same-person pairs remain tightly clustered in embedding space.',
+    url: 'http://vis-www.cs.umass.edu/lfw/',
+    color: '#34d399',
+  },
+  'CALFW': {
+    full: 'Cross-Age LFW',
+    images: '13,233',
+    pairs: '6,000',
+    description: 'Cross-Age LFW. 13,233 images, 6,000 pairs specifically selected with large age gaps. Tests the model\'s ability to match the same person across age differences. Our accuracy: 94.02%, Stability Index: 0.5212 — lower than LFW, confirming age causes measurable drift.',
+    insight: 'The 5.65% accuracy drop vs LFW directly quantifies the impact of aging on face recognition. Stability Index drops from 0.6718 to 0.5212 — same-person pairs are less similar when age gaps exist.',
+    url: 'https://arxiv.org/abs/1708.08197',
+    color: '#60a5fa',
+  },
+  'AgeDB-30': {
+    full: 'AgeDB with ≤30 year gaps',
+    images: '16,488',
+    pairs: '6,000',
+    description: 'The primary drift dataset. 16,488 images with verified age gaps up to 30 years. Each pair has a known age difference. Our accuracy: 92.68%, Stability Index: 0.4552. This dataset was used to calibrate our drift threshold of 0.65 — it was chosen to sit between the genuine and impostor drift distributions.',
+    insight: 'AgeDB-30 is the most challenging same-identity dataset. The drift threshold of 0.65 was empirically calibrated here: it sits between the genuine pair peak (~0.45) and impostor pair peak (~0.90), maximising both TAR and TNR.',
+    url: 'https://ibug.doc.ic.ac.uk/resources/agedb/',
+    color: '#818cf8',
+  },
+  'CPLFW': {
+    full: 'Cross-Pose LFW',
+    images: '13,233',
+    pairs: '6,000',
+    description: 'Cross-Pose LFW. 13,233 images with significant head pose variation (profile views, angled shots). Our accuracy: 88.73% — the hardest dataset, confirming that pose variation causes more drift than aging. Stability Index: 0.4463, the lowest of all four datasets.',
+    insight: 'Surprisingly, pose variation (88.73%) causes more accuracy degradation than age gaps (92.68%). This suggests that re-enrollment systems should also consider pose-diverse reference images, not just temporal updates.',
+    url: 'http://www.whdeng.cn/CPLFW/index.html',
+    color: '#fbbf24',
+  },
+};
+
+// ── Dataset Modal ─────────────────────────────────────────────────────────────
+function DatasetModal({ dataset, liveData, onClose }) {
+  if (!dataset) return null;
+  const info = DATASET_INFO[dataset];
+  if (!info) return null;
+  // Merge live data if available
+  const d = liveData || {};
+
+  return (
+    <Modal isOpen={!!dataset} onClose={onClose} maxWidth={500}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 24 }}>
+        <div style={{ width: 56, height: 56, borderRadius: 14, background: `${info.color}18`, border: `1.5px solid ${info.color}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.6rem', flexShrink: 0 }}>
+          📁
+        </div>
+        <div>
+          <div style={{ fontSize: '1.1rem', fontWeight: 800, color: info.color }}>{dataset}</div>
+          <div style={{ fontSize: '0.75rem', color: '#475569', marginTop: 3 }}>{info.full}</div>
+        </div>
+      </div>
+
+      {/* Stats row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 20 }}>
+        {[
+          { label: 'Images',    value: info.images },
+          { label: 'Pairs',     value: info.pairs },
+          { label: 'Accuracy',  value: `${d.accuracy ?? '—'}%` },
+          { label: 'Stability', value: d.stability_index?.toFixed(4) ?? '—' },
+        ].map((s, i) => (
+          <div key={i} style={{ background: 'rgba(15,34,64,0.5)', border: '1px solid rgba(59,130,246,0.1)', borderRadius: 8, padding: '10px 8px', textAlign: 'center' }}>
+            <div style={{ fontSize: '0.6rem', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{s.label}</div>
+            <div style={{ fontSize: '0.9rem', fontWeight: 800, color: info.color, fontFamily: 'JetBrains Mono, monospace' }}>{s.value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Description */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>About this Dataset</div>
+        <p style={{ fontSize: '0.875rem', color: '#94a3b8', lineHeight: 1.8, margin: 0 }}>{info.description}</p>
+      </div>
+
+      {/* Key insight */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Key Insight</div>
+        <div style={{ background: `${info.color}12`, border: `1px solid ${info.color}33`, borderRadius: 10, padding: '12px 16px', fontSize: '0.85rem', color: '#e2e8f0', lineHeight: 1.7 }}>
+          💡 {info.insight}
+        </div>
+      </div>
+
+      {/* Official link */}
+      <a href={info.url} target="_blank" rel="noopener noreferrer"
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: `${info.color}18`, border: `1px solid ${info.color}44`, borderRadius: 10, padding: '10px 20px', fontSize: '0.85rem', fontWeight: 700, color: info.color, textDecoration: 'none', transition: 'all 0.2s' }}
+        onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
+        onMouseLeave={e => { e.currentTarget.style.transform = 'none'; }}
+      >
+        🔗 Official Dataset Page
+      </a>
+    </Modal>
+  );
+}
+
 // ── Sub-components ────────────────────────────────────────────────────────────
 function AccuracyBar({ value }) {
   const color = value >= 98 ? '#34d399' : value >= 92 ? '#60a5fa' : value >= 88 ? '#818cf8' : '#fbbf24';
@@ -46,10 +149,11 @@ function StabilityDot({ value }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 export default function BenchmarkResults() {
-  const [data,      setData]      = useState(FALLBACK);
-  const [loading,   setLoading]   = useState(true);
-  const [threshold, setThreshold] = useState(0.65);
-  const [histogram, setHistogram] = useState(null);
+  const [data,            setData]            = useState(FALLBACK);
+  const [loading,         setLoading]         = useState(true);
+  const [threshold,       setThreshold]       = useState(0.65);
+  const [histogram,       setHistogram]       = useState(null);
+  const [selectedDataset, setSelectedDataset] = useState(null);
 
   useEffect(() => {
     fetch('/results')
@@ -184,6 +288,7 @@ export default function BenchmarkResults() {
   };
 
   return (
+    <>
     <section id="results" style={{ padding: '100px 0', background: 'rgba(10,22,40,0.4)' }}>
       <div className="orb" style={{ width: 350, height: 350, background: 'radial-gradient(circle, rgba(52,211,153,0.08) 0%, transparent 70%)', bottom: '10%', left: '-5%', pointerEvents: 'none' }} />
 
@@ -195,7 +300,8 @@ export default function BenchmarkResults() {
           </div>
           <h2 className="section-title gradient-text" style={{ marginBottom: 14 }}>Performance on 4 Datasets</h2>
           <p className="section-subtitle" style={{ maxWidth: 560, marginLeft: 'auto', marginRight: 'auto' }}>
-            Evaluated using ArcFace w600k_r50 with drift threshold = <strong style={{ color: '#fbbf24' }}>{threshold}</strong>.
+            Evaluated using ArcFace w600k_r50 with drift threshold = <strong style={{ color: '#fbbf24' }}>{threshold}</strong>.{' '}
+            <span style={{ color: '#34d399', fontWeight: 600 }}>Click any dataset card for details →</span>
           </p>
         </div>
 
@@ -204,7 +310,14 @@ export default function BenchmarkResults() {
           {data.map((d, i) => {
             const colors = ['#34d399', '#60a5fa', '#818cf8', '#fbbf24'];
             return (
-              <div key={i} className="glass-card glass-card-hover animate-fadeInUp" style={{ padding: 24, animationDelay: `${i * 0.1}s` }}>
+              <div
+                key={i}
+                id={`dataset-${d.dataset.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
+                className="glass-card glass-card-hover animate-fadeInUp"
+                onClick={() => setSelectedDataset(d.dataset)}
+                style={{ padding: 24, animationDelay: `${i * 0.1}s`, cursor: 'pointer', position: 'relative' }}
+              >
+                <div style={{ position: 'absolute', top: 10, right: 12, fontSize: '0.6rem', color: '#334155', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>details →</div>
                 <div style={{ fontSize: '0.7rem', fontWeight: 600, color: colors[i], textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>{d.dataset}</div>
                 <div style={{ fontSize: '2rem', fontWeight: 900, color: colors[i], fontFamily: 'JetBrains Mono, monospace', marginBottom: 4 }}>{d.accuracy}%</div>
                 <div style={{ fontSize: '0.75rem', color: '#475569' }}>Accuracy</div>
@@ -299,5 +412,12 @@ export default function BenchmarkResults() {
 
       </div>
     </section>
+
+    <DatasetModal
+      dataset={selectedDataset}
+      liveData={data.find(d => d.dataset === selectedDataset)}
+      onClose={() => setSelectedDataset(null)}
+    />
+    </>
   );
 }
