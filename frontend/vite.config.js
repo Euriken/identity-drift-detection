@@ -11,9 +11,9 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/compare': 'http://localhost:5000',
-      '/results': 'http://localhost:5000',
-      '/health': 'http://localhost:5000',
+      '/compare': 'http://localhost:5001',
+      '/results': 'http://localhost:5001',
+      '/health':  'http://localhost:5001',
     }
   }
 })
